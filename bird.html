@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>亲爱的小鸟,今天我把你搞定!</title>
+
+</head>
+<body>
+	<center>
+		<canvas id = 'canvas' width = '400px' height = '600px' style = 'background-color:gray'>
+			
+		</canvas>
+
+
+	</center>
+
+	<script type="text/javascript">
+
+	//全局变量
+	var context; //undefined
+	//小鸟图片索引
+	var birdIndex = 0;
+	//定时器
+	var timer = null;
+
+	//小鸟数组
+	var birds = ['images/0.gif','images/1.gif','images/2.gif']
+
+	var score = 0; //计算游戏分数
+
+	var isOver = false; //是否游戏结束
+
+	var isScored = false; //是否开始计分
+
+	var  ver1 = 10; //开始速度
+	var  ver2; //末尾速度
+	var gravity = 2 //重力
+
+	var velocity = 8;//背景的移动速度
+
+
+	//背景对象/地面
+	function Background(x,y,width,height,src){
+
+		this.x = x; //0
+		this.y = y; //0
+		this.width = width; //400
+		this.height = height; //600
+
+		var img1 = new Image();
+		img1.src = src;
+
+		this.image = img1;
+
+		//声明绘制背景的函数
+		this.draw = bgDraw;
+
+	}
+	//绘图
+	function bgDraw(){
+		context.drawImage(this.image,this.x,this.y,this.width,this.height);
+	}
+
+	//声明上方障碍物的函数
+	function UpPipe(sx,sy,swdith,sheight,x,y,width,height,src){
+		//给图片找位置
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+
+		//切精灵图片
+		this.sx = sx;
+		this.sy = sy;
+		this.swdith = swdith;
+		this.sheight = sheight;
+
+		var img2 = new Image();
+		img2.src = src;
+		this.image = img2;
+
+		//绘制上方障碍物的方法
+		this.draw = upPipeDraw;
+
+	}
+	//上方障碍物的绘图方法
+	function upPipeDraw(){
+		context.drawImage(this.image,this.sx,this.sy,this.swdith,this.sheight,this.x,this.y,this.width,this.height);
+	}
+
+	//声明下方障碍物的函数
+	function DownPipe(x,y,width,height,src){
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+
+		var img3 = new Image();
+		img3.src = src;
+		this.image = img3;
+
+		//方法
+		this.draw = downPipeDraw;
+
+	}
+	//声明绘制下方障碍物的函数
+	function downPipeDraw(){
+		context.drawImage(this.image,0,500,150,500,this.x,this.y,this.width,this.height);
+	}
+	//声明小鸟对象的函数
+	function Bird(x,y,width,height){
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+
+		this.draw = birdDraw;
+	}
+
+	//声明绘制小鸟函数
+	function birdDraw(){
+		birdIndex++; //1 2 3 4
+		var birdImg = new Image();
+		birdImg.src = birds[birdIndex%3]; //0 1 2
+		this.image = birdImg;
+		var bird1 = this;	
+		context.drawImage(this.image,this.x,this.y,this.width,this.height);
+
+	}
+
+	function GameOver(x,y,width,height,src){
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		var image = new Image();
+		image.src = src;
+		this.image = image;
+
+		this.draw = gameOverDraw;
+
+	}
+
+	function gameOverDraw(){
+		context.drawImage(this.image,0,300,500,130,this.x,this.y,this.width,this.height);
+	}
+	
+	//创建背景图片对象
+	var back = new Background(0,0,400,600,'images/bg.png');
+	//创建地面对象
+	var groundBack = new Background(0,500,400,200,'images/ground.png');
+
+	//创建上方障碍物
+	var upPipe  = new UpPipe(150,500,150,800,0,0,100,200,'images/pipe.png');
+	//创建下方障碍物
+	var downPipe = new DownPipe(0,400,100,100,'images/pipe.png');
+
+	//创建小鸟对象
+	var bird = new Bird(80,300,40,40);
+	//创建游戏结束对象
+
+	var gameOver = new GameOver(100,200,200,100,'images/pipe.png');
+
+
+	//声明计算的函数
+	function calculator(){
+
+		//地面 || 上面 || 上方障碍物 || 下方障碍物 
+
+		//地面碰撞条件
+		var groundCondition = bird.y+bird.height >= groundBack.y;
+
+		//上面碰撞条件
+		var onCondition = bird.y <= 0;
+
+		//上方障碍物的碰撞条件 
+		var upPipeCondition = ((bird.x+bird.width >= upPipe.x)&&(bird.x+bird.width <= upPipe.x+upPipe.width)&&(bird.y >= upPipe.y)&&(bird.y <= upPipe.y+upPipe.height) || (bird.x >= upPipe.x)&&(bird.x <= upPipe.x+upPipe.width) && (bird.y >= upPipe.y)&&(bird.y <= upPipe.y+upPipe.height));
+
+		//下方障碍物的碰撞条件
+
+		var downPipeCondition = ((bird.x+bird.width >= downPipe.x)&&(bird.x+bird.width <= downPipe.x+downPipe.width)&&(bird.y+bird.height >= downPipe.y)&&(bird.y+bird.height <= downPipe.y+downPipe.height) || (bird.x >= downPipe.x)&&(bird.x <= downPipe.x+downPipe.width)&&(bird.y +bird.height >= downPipe.y)&&(bird.y +bird.height <= downPipe.y+downPipe.height));
+
+		if (groundCondition || onCondition || upPipeCondition || downPipeCondition) { //碰撞了
+
+			//清除定时器
+			clearInterval(timer);
+
+			context.fillStyle = '#49ce68';
+			context.font = '30px Simihei';
+
+			context.fillText('恭喜您,获得'+score+'分!',110,100);
+
+			//绘制游戏结束界面
+			gameOver.draw();
+
+			//将游戏改为true
+			isOver = true;
+
+		};
+		
+
+		//让小鸟下落 模拟小鸟重力下降
+
+		ver2 = ver1 + gravity;
+		bird.y+=(ver1 + ver2)*0.5;
+		//障碍物移动
+		if (upPipe.x+upPipe.width >0) {
+			//向左移动
+			// upPipe.x = upPipe.x-5;
+			upPipe.x-=velocity;
+			downPipe.x-=velocity;
+		}else{
+			upPipe.x = 400;
+			downPipe.x = 400;
+
+			//100--300的距离
+			upPipe.height = Math.random()*200+100;
+
+			downPipe.y = upPipe.height+200;
+
+			downPipe.height = 600-downPipe.y;
+
+			//开始计分
+			isScored = true;
+
+		}
+
+		if (isScored && bird.x+bird.width > upPipe.x+upPipe.width) {
+
+			score++;
+			if (score > 0 &&score%5===0) {
+				//让游戏增加难度
+
+				velocity+=5;
+				gravity+=2;
+
+			}
+			//停止计分
+			isScored = false;
+
+
+		};
+
+
+		
+
+}
+	
+	//声明键盘摁下的方法
+	function Keyup(e){
+
+		// alert(event);
+
+		// alert(event.keyCode);
+		e = e || event
+
+		//键盘上的空格键 32
+		var currentKeyCode = e.keyCode;
+
+		if (currentKeyCode == 32) {
+			bird.y-=60;
+		};
+
+	}
+
+
+	//重新开始游戏
+	function reAction(){
+
+		if (isOver) {
+			isOver = false;
+			//让小鸟项目重新加载
+			window.location.reload()
+
+		}
+	}
+	
+
+	//声明一个函数
+	function DrawAll(){
+
+			//每次调之前清除下当前的窗口
+			context.clearRect(0,0,400,600);
+
+			//绘制背景对象的方法
+			back.draw();
+			//绘制上方障碍物对象的方法
+			upPipe.draw();
+
+			//绘制下方障碍物对象的方法
+			downPipe.draw();
+
+			//绘制地面对象的方法
+			groundBack.draw();
+
+			//绘制小鸟对象的方法
+			bird.draw();
+
+			//循环的方法调用
+			calculator();
+
+	}
+
+	//当浏览器界面加载的时候会调用下面这个函数
+	document.body.onload = function(){
+			//获取到画布
+			var canvas = document.getElementById('canvas')
+			//获取到内容
+			context = canvas.getContext('2d');
+
+			//onkeyup 事件发生 键盘按键被松开时发生
+			document.onkeyup = Keyup;
+
+			document.onclick = reAction;
+
+			//函数调用
+			DrawAll();
+
+			//开启定时器
+			timer = setInterval(DrawAll,80);
+
+	}
+
+	// back.draw()
+	//背景对象.draw();
+	//地面对象.draw();
+	//小鸟对象.draw();
+
+
+	/*
+	//想把背景图片画上去
+	var img1 = new Image();
+	img1.src = 'images/bg.png';
+	img1.onload = function(){
+		context.drawImage(img1,0,0,400,600);
+	}
+	//0,500,400,200
+	//地面
+	var img2 = new Image();
+	img2.src = 'images/ground.png';
+	img2.onload = function(){
+		context.drawImage(img2,0,500,400,200);
+	}
+
+	*/
+
+
+	</script>
+
+
+</body>
+</html>
